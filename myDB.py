@@ -1,6 +1,5 @@
 import datetime
 import mysql.connector
-import random
 
 
 class DBHelper:
@@ -17,7 +16,7 @@ class DBHelper:
                  "productDescription varchar(40),productPrice int, stock int)"
         query4 = "create table if not exists discount(discountID varchar(7) primary key,discountName varchar(30)," \
                  "discountDescription varchar(40),discountPrice int)"
-        query5 = "create table if not exists invoice(invoiceID int primary key,invoiceDate varchar(20),customerID varchar(8),customerName varchar(30),productID varchar(6),paymentMode varchar(20),tax int,totalPrice int)"
+        query5 = "create table if not exists invoice(invoiceID int primary key NOT NULL AUTO_INCREMENT,invoiceDate varchar(20),customerID varchar(8),customerName varchar(30),productID varchar(6),paymentMode varchar(20),tax int,totalPrice int)"
         cursor = self.con.cursor()
         cursor.execute(query1)
         cursor.execute(query2)
@@ -39,27 +38,58 @@ class DBHelper:
 
     # Login
     def login_admin(self, email, password):
-        flag = False
+        flag = ''
         query1 = "select email,password from users where category='admin'"
         cursor = self.con.cursor()
         cursor.execute(query1)
         for row in cursor:
-            if row[0] == email and row[1] == password:
-                flag = True
+            if row[0] == email:
+                if row[1] == password:
+                    flag = 'Login Successful'
+                else:
+                    flag = 'Incorrect password'
             else:
-                flag = False
+                flag = 'Incorrect username'
         return flag
 
-    def calculate_bill(self,list1,list2,list3):
+    def calculate_bill(self, list3):
         total_price = 0
         for i in range(0, len(list3)):
             total_price += list3[i]
-
+        return total_price
 
     # Update invoice
-    def update_invoice(self, custID, custName, ):
-        invoice_id = random.sample(range(1, 100), 1)
+    def update_invoice(self, custID, total, list1, list2, quantity, list3, payment):
         invoice_date = datetime.date.today()
+        query1 = "select customerName from customer where customerID='{}'".format(custID)
+        cursor = self.con.cursor()
+        cursor.execute(query1)
+        tax = total + 10
+        for i in cursor:
+            custName = i[0]
+        for i in range(len(list1)):
+            productID = list1[i]
+            query2 = "insert into invoice(invoiceDate,customerID,customerName,productID,paymentMode,tax,totalPrice)" \
+                     "values('{}','{}','{}','{}','{}',{},{})".format(invoice_date, custID, custName,
+                                                                     productID, payment, tax, total)
+            cursor.execute(query2)
+        self.con.commit()
+        print('Invoice has been added\n')
+
+    def fetch_all_invoice_data(self):
+        query = "select * from invoice"
+        cursor = self.con.cursor()
+        cursor.execute(query)
+        print('Fetching all data from invoice\n\n')
+        for row in cursor:
+            print('Invoice ID : ', row[0], )
+            print('Invoice Date : ', row[1])
+            print('Customer ID : ', row[2])
+            print('Customer Name : ', row[3])
+            print('Product ID : ', row[4])
+            print('Payment Mode : ', row[5])
+            print('Tax : ', row[5])
+            print('Total Price : ', row[5], '\n\n')
 
     # Fetching all product data
     def fetch_all_product_data(self):
@@ -84,21 +114,12 @@ class DBHelper:
         print(price)
         return price
 
-    # delete user
-    def delete_user(self, id):
-        query = "delete from my_users where user_id ={}".format(id)
+    # delete invoice
+    def delete_invoice_by_id(self, id):
+        query = "delete from invoice where invoiceID ={}".format(id)
         cursor = self.con.cursor()
         cursor.execute(query)
         self.con.commit()
-        print('User {} has been deleted'.format(id), '\n')
-
-    # update user
-    def update_user(self, id, name, phone):
-        query = "update my_users set user_name='{}',phone_number='{}' where user_id={}".format(name, phone, id)
-        cursor = self.con.cursor()
-        cursor.execute(query)
-        self.con.commit()
-        print('User {} has been updated'.format(id), '\n')
+        print('Invoice {} has been deleted'.format(id), '\n')
 
 
-DBHelper().fetch_price_of_product('PRD234')
